@@ -4,6 +4,8 @@ import time
 class MALHandler(object):
     def __init__(self):
         self.jikan = Jikan()
+        self.dataPath = './data/meta'
+        self.labelPath = './label/meta'
 
     def getDetailSynopsisAndScore(self, id):
         detail_anime = self.jikan.anime(id)
@@ -37,16 +39,16 @@ class MALHandler(object):
 
     def saveAnimeData(self, year, season):
         input, label = self.getAnimeData(year, season)
-        f_input = open('./data/{}_{}_data.txt'.format(year, season), 'w')
-        f_label = open('./label/{}_{}_label.txt'.format(year, season), 'w')
+        f_input = open('{}/{}_{}_data.txt'.format(self.dataPath, year, season), 'w')
+        f_label = open('{}/{}_{}_label.txt'.format(self.labelPath, year, season), 'w')
         f_input.writelines(input)
         f_label.writelines(label)
         f_input.close()
         f_label.close()
 
     def loadData(self, year, season):
-        f_input = open('./data/{}_{}_data.txt'.format(year, season), 'r')
-        f_label = open('./label/{}_{}_label.txt'.format(year, season), 'r')
+        f_input = open('{}/{}_{}_data.txt'.format(self.dataPath, year, season), 'r')
+        f_label = open('{}/{}_{}_label.txt'.format(self.labelPath, year, season), 'r')
         data = []
         label = []
         while True:
