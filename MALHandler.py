@@ -1,11 +1,14 @@
 from jikanpy import Jikan
 import time
 
+
 class MALHandler(object):
     def __init__(self):
         self.jikan = Jikan()
+        self.fileHandler = FileHandler()
         self.dataPath = './data/meta'
         self.labelPath = './label/meta'
+        self.allSeoson = ['spring', 'summer', 'fall', 'winter']
 
     def getDetailSynopsisAndScore(self, id):
         detail_anime = self.jikan.anime(id)
@@ -21,7 +24,6 @@ class MALHandler(object):
             synopsis = anime['synopsis']
             synopsis = ' '.join(synopsis.splitlines())
             synopsis = synopsis.replace('  ', ' ')
-            synopsis = synopsis + '\n'
             if anime['score'] is None:
                 while True:
                     try:
@@ -33,38 +35,47 @@ class MALHandler(object):
             else:
                 score = anime['score']
 
-            label.append(str(score) + '\n')
+            label.append(str(score))
             input.append(synopsis)
         return input, label
 
+
+
+
     def saveAnimeData(self, year, season):
         input, label = self.getAnimeData(year, season)
-        f_input = open('{}/{}_{}_data.txt'.format(self.dataPath, year, season), 'w')
-        f_label = open('{}/{}_{}_label.txt'.format(self.labelPath, year, season), 'w')
-        f_input.writelines(input)
-        f_label.writelines(label)
-        f_input.close()
-        f_label.close()
+        self.fileHandler.saveFileHandler('{}/{}_{}_data.txt'.format(self.dataPath, year, season), input)
+        self.fileHandler.saveFileHandler('{}/{}_{}_label.txt'.format(self.labelPath, year, season), label)
+
 
     def loadData(self, year, season):
-        f_input = open('{}/{}_{}_data.txt'.format(self.dataPath, year, season), 'r')
-        f_label = open('{}/{}_{}_label.txt'.format(self.labelPath, year, season), 'r')
-        data = []
-        label = []
-        while True:
-            data_line = f_input.readline()
-            label_line = f_label.readline()
-            if not data_line or not label_line:
-                if label_line != data_line:
-                    raise RuntimeError('Input and label numbers not match!')
-                break
-            data.append(data_line)
-            label.append(label_line)
+
+        data = self.fileHandler.loadFileHandler('{}/{}_{}_data.txt'.format(self.dataPath, year, season))
+        label = self.fileHandler.loadFileHandler('{}/{}_{}_label.txt'.format(self.labelPath, year, season))
+        if len(data) != len(label):
+            raise RuntimeError('Input and label numbers not match!')
+        return data, label
 
     def savaAllSeasonAnimeData(self, year):
-        allSeason = ['spring', 'summer', 'fall', 'winter']
-        for season in allSeason:
+        for season in self.allSeason:
             self.saveAnimeData(year, season)
 
 
+class FileHandler(object):
+    def saveFileHandler(self, path, data):
+        f = open(path, 'w')
+        temData = [tem + '\n' for tem in data]
+        f.writelines(temData)
+        f.close()
 
+    def loadFileHandler(self, path):
+        f = open(path, 'r')
+        data = []
+        while True:
+            line = f.readline()[:-1]
+            data.append(line)
+            if not line:
+                break
+        data.pop()
+        f.close()
+        return data
