@@ -1,7 +1,8 @@
 from MALHandler import MALHandler, FileHandler
+from collections import Counter
 import os
 import re
-
+import numpy as np
 
 class Preprocessor(object):
 
@@ -11,8 +12,8 @@ class Preprocessor(object):
         self.saveDataPath = './data'
         self.saveLabelPath = './label'
         self.allData = []
-        self.splitData = []
         self.allLabel = []
+        self.splitData = []
 
 
     def loadAllMetaDataAndLabel(self):
@@ -35,7 +36,6 @@ class Preprocessor(object):
                                         self.allData)
         self.fileHandler.saveFileHandler('{}/preprocessed_label.txt'.format(self.saveLabelPath),
                                         self.allLabel)
-
 
     def loadPreprocessedData(self):
         allData = self.fileHandler.loadFileHandler('{}/preprocessed_data.txt'.format(self.saveDataPath))
@@ -67,7 +67,6 @@ class Preprocessor(object):
         self.allLabel = allLabel
         self.allData = allData
 
-
     def cleanUpData(self):
         allData = []
         rule = re.compile(r"[^a-zA-Z ]|( *$)")
@@ -78,15 +77,26 @@ class Preprocessor(object):
             allData.append(data)
         self.allData = allData
 
+    def increaseLabelScale(self, scale):
+        allLabel = [label * scale for label in self.allLabel]
+        self.allLabel = allLabel
+
+    def generateW2V(self):
+        data = ' '.join(self.allData)
+        words = data.split()
+        counts = Counter(words)
+        print(len(counts.most_common()))
+
+
     def getSplitData(self):
         splitData = []
         for data in self.allData:
             splitData.append(data.split(' '))
         self.splitData = splitData
 
-
 test = Preprocessor()
-test.loadPreprocessedData()
-test.getSplitData()
-print(test.splitData)
-
+test.loadAllMetaDataAndLabel()
+test.cleanUpData()
+test.removeShortData(50)
+test.increaseLabelScale(10)
+test.generateW2V()
