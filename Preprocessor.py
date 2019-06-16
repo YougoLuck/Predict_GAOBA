@@ -9,11 +9,12 @@ class Preprocessor(object):
     def __init__(self):
         self.malHandler = MALHandler()
         self.fileHandler = FileHandler()
-        self.saveDataPath = './data'
-        self.saveLabelPath = './label'
+        self.savePath = '.'
         self.allData = []
         self.allLabel = []
-        self.splitData = []
+        self.intData = []
+        self.vocabToInt = {}
+        self.IntToVocab = {}
 
 
     def loadAllMetaDataAndLabel(self):
@@ -32,18 +33,25 @@ class Preprocessor(object):
         self.allLabel = allLabel
 
     def savePreprocessedData(self):
-        self.fileHandler.saveFileHandler('{}/preprocessed_data.txt'.format(self.saveDataPath),
-                                        self.allData)
-        self.fileHandler.saveFileHandler('{}/preprocessed_label.txt'.format(self.saveLabelPath),
-                                        self.allLabel)
+        self.fileHandler.saveMetaFileHandler('{}/preprocessed_data.txt'.format(self.savePath),
+                                             self.intData)
+        self.fileHandler.saveMetaFileHandler('{}/preprocessed_label.txt'.format(self.savePath),
+                                             self.allLabel)
+        self.fileHandler.saveMetaFileHandler('{}/vocab_to_int.txt'.format(self.savePath),
+                                             self.vocabToInt)
 
-    def loadPreprocessedData(self):
-        allData = self.fileHandler.loadFileHandler('{}/preprocessed_data.txt'.format(self.saveDataPath))
-        allLabel = self.fileHandler.loadFileHandler('{}/preprocessed_label.txt'.format(self.saveLabelPath))
-        if len(allData) != len(allLabel):
+    def loadPreprocessedData(self, seqLen):
+        intData = self.fileHandler.loadMetaFileHandler('{}/preprocessed_data.txt'.format(self.savePath))
+        allLabel = self.fileHandler.loadMetaFileHandler('{}/preprocessed_label.txt'.format(self.savePath))
+        vocabToInt = self.fileHandler.loadMetaFileHandler('{}/vocab_to_int.txt'.format(self.savePath))
+        if len(intData) != len(allLabel):
             raise RuntimeError('Input and label numbers not match!')
-        self.allData = allData
-        self.allLabel = allLabel
+        self.vocabToInt = vocabToInt
+        features = np.zeros((len(intData), seqLen), dtype = int)
+        for i, row in enumerate(intData):
+            features[i, -len(row):] = np.array(row)[:seqLen]
+        self.intData = features
+        self.allLabel = np.array(allLabel, dtype = np.float)
 
     def removeSourceTag(self, data):
         index = data.find('(Source')
@@ -61,7 +69,7 @@ class Preprocessor(object):
         for i in range(len(self.allData)):
             data = self.allData[i]
             dataArr = data.split(' ')
-            if len(dataArr) >= threshold:
+            if len(dataArr) >= threshold and self.allLabel[i] != 'None':
                 allData.append(data)
                 allLabel.append(self.allLabel[i])
         self.allLabel = allLabel
@@ -72,31 +80,36 @@ class Preprocessor(object):
         rule = re.compile(r"[^a-zA-Z ]|( *$)")
         for data in self.allData:
             data = self.removeSourceTag(data)
-            data = rule.sub('', data)
+            data = rule.sub(' ', data)
             data = data.lower()
             allData.append(data)
         self.allData = allData
 
     def increaseLabelScale(self, scale):
-        allLabel = [label * scale for label in self.allLabel]
+        allLabel = [float(label) * scale for label in self.allLabel]
         self.allLabel = allLabel
 
     def generateW2V(self):
         data = ' '.join(self.allData)
         words = data.split()
         counts = Counter(words)
-        print(len(counts.most_common()))
-
-
-    def getSplitData(self):
-        splitData = []
+        vocab = sorted(counts, key = counts.get, reverse = True)
+        vocabToInt = {word: ii for ii, word in enumerate(vocab, 1)}
+        self.vocabToInt = vocabToInt
+        intData = []
         for data in self.allData:
-            splitData.append(data.split(' '))
-        self.splitData = splitData
+            intData.append([vocabToInt[word] for word in data.split()])
+        self.intData = intData
+
+
+    def run(self, dataThreshold, labelScale):
+        self.loadAllMetaDataAndLabel()
+        self.cleanUpData()
+        self.removeShortData(dataThreshold)
+        self.increaseLabelScale(labelScale)
+        self.generateW2V()
+        self.savePreprocessedData()
 
 test = Preprocessor()
-test.loadAllMetaDataAndLabel()
-test.cleanUpData()
-test.removeShortData(50)
-test.increaseLabelScale(10)
-test.generateW2V()
+test.loadPreprocessedData(200)
+
