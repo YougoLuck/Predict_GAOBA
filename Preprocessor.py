@@ -110,6 +110,4 @@ class Preprocessor(object):
         self.generateW2V()
         self.savePreprocessedData()
 
-test = Preprocessor()
-test.loadPreprocessedData(200)
 
