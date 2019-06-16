@@ -60,12 +60,22 @@ class MALHandler(object):
         for season in self.allSeason:
             self.saveAnimeData(year, season)
 
+    def run(self, formYear, toYear):
+        for year in range(formYear, toYear):
+            for season in self.allSeoson:
+                self.saveAnimeData(year, season)
+
 
 class FileHandler(object):
     def saveFileHandler(self, path, data):
         f = open(path, 'w')
         temData = [tem + '\n' for tem in data]
         f.writelines(temData)
+        f.close()
+
+    def saveMetaFileHandler(self, path, data):
+        f = open(path, 'w')
+        f.write(str(data))
         f.close()
 
     def loadFileHandler(self, path):
@@ -77,5 +87,12 @@ class FileHandler(object):
             if not line:
                 break
         data.pop()
+        f.close()
+        return data
+
+    def loadMetaFileHandler(self, path):
+        f = open(path, 'r')
+        data = f.read()
+        data = eval(data)
         f.close()
         return data
